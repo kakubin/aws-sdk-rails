@@ -14,6 +14,26 @@ module ActiveJob
         _enqueue(job, nil, delay_seconds: delay)
       end
 
+      def enqueue_all(jobs)
+        jobs.group_by(&:queue_name).each do |queue_name, same_queue_jobs|
+          queue_url = Aws::Rails::SqsActiveJob.config.queue_url_for(queue_name)
+          base_send_message_opts = { queue_url: queue_url }
+
+          same_queue_jobs.each_slice(10) do |chunk|
+            entries = chunk.map do |job|
+              entry = Params.new(job, nil).entry
+              entry[:delay_seconds] = Params.assured_delay_seconds(job.scheduled_at) if job.scheduled_at
+              entry
+            end
+
+            send_message_opts = base_send_message_opts.deep_dup
+            send_message_opts[:entries] = entries
+
+            Aws::Rails::SqsActiveJob.config.client.send_message_batch(send_message_opts)
+          end
+        end
+      end
+
       private
 
       def _enqueue(job, body = nil, send_message_opts = {})

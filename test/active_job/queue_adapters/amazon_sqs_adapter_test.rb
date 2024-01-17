@@ -188,6 +188,30 @@ module ActiveJob
           end.to raise_error ArgumentError
         end
       end
+
+      if Gem::Version.new(Rails::VERSION::STRING) >= '7.1.0'
+        describe 'with multiple jobs' do
+          it do
+          expect(client).to receive(:send_message_batch).with(
+            {
+              queue_url: 'https://queue-url',
+              entries: [
+                {
+                  message_body: instance_of(String),
+                  message_attributes: instance_of(Hash),
+                },
+                {
+                  message_body: instance_of(String),
+                  message_attributes: instance_of(Hash),
+                },
+              ]
+            }
+          ).once
+
+          ActiveJob.perform_all_later(TestJob.new('test'), TestJob.new('test'))
+          end
+        end
+      end
     end
   end
 end
