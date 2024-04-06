@@ -88,3 +88,18 @@ jobs:
 
       - name: Rubocop
         run: bundle exec rubocop -E -S
+
+  test-sample-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          working-directory: ${{ github.workspace }}/sample_app
+
+      - name: Test
+        run: bundle exec rake test
+        working-directory: ${{ github.workspace }}/sample_app
